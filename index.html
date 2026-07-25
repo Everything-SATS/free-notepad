@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Free Notepad — write, copy, paste, in one click</title>
-<meta name="description" content="A free, ad-free, no-account notepad. One click to write, copy, or paste. Jump back into any note, anytime.">
+<title>Free Notepad — Write And Save In One Click</title>
+<meta name="description" content="A Free, Ad-Free, No-Account Notepad. Write Instantly And Save With One Click. Jump Back Into Any Note, Anytime.">
 <meta name="theme-color" content="#1E9C97">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-32.png" sizes="32x32" type="image/png">
@@ -75,12 +75,9 @@
     max-width:1100px;
     margin:0 auto;
     padding:18px 16px 60px;
-    display:grid;
-    grid-template-columns:280px 1fr;
+    display:flex;
+    flex-direction:column;
     gap:18px;
-  }
-  @media (max-width:760px){
-    main{ grid-template-columns:1fr; }
   }
 
   .panel{
@@ -91,8 +88,7 @@
   }
 
   .new-note-btn{
-    width:100%;
-    padding:14px;
+    padding:14px 22px;
     font-size:1.05rem;
     font-weight:700;
     border:none;
@@ -104,32 +100,41 @@
   }
   .new-note-btn:hover{ background:var(--teal-dark); }
 
-  .notes-list{ display:flex; flex-direction:column; gap:8px; max-height:65vh; overflow-y:auto; }
-  .note-item{
+  .notes-heading{ margin:0 0 12px; font-size:1.05rem; }
+
+  .notes-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; }
+  .note-tile{
     display:flex;
-    align-items:flex-start;
-    gap:6px;
+    flex-direction:column;
+    height:160px;
     background:var(--bg-alt);
     border:1px solid var(--border);
-    border-radius:10px;
+    border-radius:12px;
     padding:10px;
     cursor:pointer;
-  }
-  .note-item.active{ border-color:var(--teal); box-shadow:0 0 0 2px rgba(30,156,151,.25); }
-  .note-item .meta{ flex:1; min-width:0; }
-  .note-item .title{
-    font-weight:600;
-    font-size:.92rem;
-    white-space:nowrap;
+    position:relative;
     overflow:hidden;
-    text-overflow:ellipsis;
   }
-  .note-item .stamp{ font-size:.72rem; color:var(--ink-soft); margin-top:2px; }
-  .note-item .del-btn{
-    background:none; border:none; cursor:pointer; font-size:1rem;
-    color:var(--ink-soft); padding:2px 4px; border-radius:6px; line-height:1;
+  .note-tile.active{ border-color:var(--teal); box-shadow:0 0 0 2px rgba(30,156,151,.25); }
+  .note-tile .tile-text{
+    flex:1;
+    font-size:.84rem;
+    line-height:1.35;
+    white-space:pre-wrap;
+    word-break:break-word;
+    overflow:hidden;
+    display:-webkit-box;
+    -webkit-line-clamp:6;
+    -webkit-box-orient:vertical;
   }
-  .note-item .del-btn:hover{ color:var(--danger); background:rgba(192,86,75,.1); }
+  .note-tile .tile-text.empty{ color:var(--ink-soft); font-style:italic; }
+  .note-tile .tile-stamp{ font-size:.68rem; color:var(--ink-soft); margin-top:6px; }
+  .note-tile .del-btn{
+    position:absolute; top:6px; right:6px;
+    background:rgba(255,255,255,.75); border:none; cursor:pointer; font-size:.9rem;
+    color:var(--ink-soft); padding:3px 5px; border-radius:6px; line-height:1;
+  }
+  .note-tile .del-btn:hover{ color:var(--danger); background:rgba(192,86,75,.18); }
   .empty-hint{ color:var(--ink-soft); font-size:.9rem; padding:8px 4px; }
 
   .editor-toolbar{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; align-items:center; }
@@ -151,7 +156,7 @@
 
   textarea#editor{
     width:100%;
-    min-height:52vh;
+    min-height:40vh;
     resize:vertical;
     border:1px solid var(--border);
     border-radius:12px;
@@ -165,13 +170,8 @@
   textarea#editor:focus{ outline:2px solid var(--teal); outline-offset:1px; }
 
   .editor-empty{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    min-height:52vh;
     color:var(--ink-soft);
-    text-align:center;
-    padding:20px;
+    padding:6px 4px 0;
   }
 
   footer{ text-align:center; color:var(--ink-soft); font-size:.8rem; padding:20px; }
@@ -197,9 +197,9 @@
 <header class="app-header">
   <div class="brand">
     <h1>📝 Free Notepad</h1>
-    <span>100% free, forever — no accounts, no paywall.</span>
+    <span>100% Free, Forever — No Accounts, No Paywall.</span>
   </div>
-  <div class="bg-picker" id="bgPicker" aria-label="Background colour">
+  <div class="bg-picker" id="bgPicker" aria-label="Background Colour">
     <button class="swatch" data-c="white" title="White"></button>
     <button class="swatch" data-c="cream" title="Cream"></button>
     <button class="swatch" data-c="blue" title="Blue"></button>
@@ -214,17 +214,20 @@
 </header>
 
 <main>
-  <section class="panel">
-    <button class="new-note-btn" id="newNoteBtn">＋ New note</button>
-    <div class="notes-list" id="notesList"></div>
+  <section class="panel" id="composerPanel">
+    <button class="new-note-btn" id="newNoteBtn">＋ New Note</button>
+    <div id="editorArea">
+      <div class="editor-empty" id="editorEmpty">Click "＋ New Note" To Start Writing — Or Pick A Note Below To Open And Edit It.</div>
+    </div>
   </section>
 
-  <section class="panel" id="editorPanel">
-    <div class="editor-empty" id="editorEmpty">Click "＋ New note" to start writing — or pick a note on the left to open and edit it.</div>
+  <section class="panel">
+    <h2 class="notes-heading">Your Notes</h2>
+    <div class="notes-grid" id="notesList"></div>
   </section>
 </main>
 
-<footer>Free Notepad — your notes stay only on this device (no login, no server, no tracking).</footer>
+<footer>Free Notepad — Your Notes Stay Only On This Device (No Login, No Server, No Tracking).</footer>
 
 <div id="printArea"></div>
 
@@ -234,7 +237,7 @@
   const BG_KEY = 'freeNotepadBg';
 
   const notesList = document.getElementById('notesList');
-  const editorPanel = document.getElementById('editorPanel');
+  const editorArea = document.getElementById('editorArea');
   const newNoteBtn = document.getElementById('newNoteBtn');
   const bgPicker = document.getElementById('bgPicker');
 
@@ -253,7 +256,7 @@
   }
   function titleFor(note){
     const firstLine = (note.content || '').split('\n').find(l => l.trim().length > 0);
-    if(!firstLine) return 'Untitled note';
+    if(!firstLine) return 'Untitled Note';
     return firstLine.trim().slice(0, 40);
   }
   function stampFor(note){
@@ -266,101 +269,84 @@
     if(notes.length === 0){
       const p = document.createElement('div');
       p.className = 'empty-hint';
-      p.textContent = 'No notes yet.';
+      p.textContent = 'No Notes Yet.';
       notesList.appendChild(p);
       return;
     }
     const sorted = [...notes].sort((a,b) => b.updated - a.updated);
     sorted.forEach(note => {
-      const item = document.createElement('div');
-      item.className = 'note-item' + (note.id === activeId ? ' active' : '');
-      item.addEventListener('click', (e) => {
+      const tile = document.createElement('div');
+      tile.className = 'note-tile' + (note.id === activeId ? ' active' : '');
+      tile.addEventListener('click', (e) => {
         if(e.target.closest('.del-btn')) return;
         openNote(note.id);
       });
 
-      const meta = document.createElement('div');
-      meta.className = 'meta';
-      const title = document.createElement('div');
-      title.className = 'title';
-      title.textContent = titleFor(note);
+      const text = document.createElement('div');
+      const hasContent = (note.content || '').trim().length > 0;
+      text.className = 'tile-text' + (hasContent ? '' : ' empty');
+      text.textContent = hasContent ? note.content : 'Empty Note';
+
       const stamp = document.createElement('div');
-      stamp.className = 'stamp';
+      stamp.className = 'tile-stamp';
       stamp.textContent = stampFor(note);
-      meta.appendChild(title);
-      meta.appendChild(stamp);
 
       const del = document.createElement('button');
       del.className = 'del-btn';
-      del.title = 'Delete note';
+      del.title = 'Delete Note';
       del.textContent = '🗑';
       del.addEventListener('click', () => deleteNote(note.id));
 
-      item.appendChild(meta);
-      item.appendChild(del);
-      notesList.appendChild(item);
+      tile.appendChild(del);
+      tile.appendChild(text);
+      tile.appendChild(stamp);
+      notesList.appendChild(tile);
     });
   }
 
   function renderEditor(){
     if(activeId === null){
-      editorPanel.innerHTML = '<div class="editor-empty">Click "＋ New note" to start writing — or pick a note on the left to open and edit it.</div>';
+      editorArea.innerHTML = '<div class="editor-empty" id="editorEmpty">Click "＋ New Note" To Start Writing — Or Pick A Note Below To Open And Edit It.</div>';
       return;
     }
     const note = notes.find(n => n.id === activeId);
     if(!note){ activeId = null; renderEditor(); return; }
 
-    editorPanel.innerHTML = `
+    editorArea.innerHTML = `
       <div class="editor-toolbar">
-        <button class="tool-btn primary" id="copyBtn">📋 Copy</button>
-        <button class="tool-btn" id="pasteBtn">📥 Paste</button>
-        <button class="tool-btn" id="pdfBtn">📄 Save as PDF</button>
+        <button class="tool-btn primary" id="saveBtn">💾 Save</button>
+        <button class="tool-btn" id="pdfBtn">📄 Save As PDF</button>
         <span class="save-flag" id="saveFlag">Saved</span>
       </div>
-      <textarea id="editor" placeholder="Start typing…" autofocus>${escapeHtml(note.content)}</textarea>
+      <textarea id="editor" placeholder="Start Typing…" autofocus>${escapeHtml(note.content)}</textarea>
     `;
     const editor = document.getElementById('editor');
     editor.focus();
     editor.setSelectionRange(editor.value.length, editor.value.length);
 
+    function saveNow(){
+      note.content = editor.value;
+      note.updated = Date.now();
+      persistNotes();
+      renderList();
+      flashSaved();
+    }
+
     editor.addEventListener('input', () => {
       note.content = editor.value;
       note.updated = Date.now();
       clearTimeout(saveTimer);
-      saveTimer = setTimeout(() => {
-        persistNotes();
-        renderList();
-        flashSaved();
-      }, 250);
+      saveTimer = setTimeout(saveNow, 250);
     });
 
-    document.getElementById('copyBtn').addEventListener('click', async () => {
-      try{
-        await navigator.clipboard.writeText(editor.value);
-        flashButton('copyBtn', '✅ Copied');
-      }catch(e){
-        editor.select();
-        document.execCommand('copy');
-        flashButton('copyBtn', '✅ Copied');
-      }
-    });
-
-    document.getElementById('pasteBtn').addEventListener('click', async () => {
-      try{
-        const text = await navigator.clipboard.readText();
-        const start = editor.selectionStart;
-        const end = editor.selectionEnd;
-        editor.value = editor.value.slice(0, start) + text + editor.value.slice(end);
-        editor.selectionStart = editor.selectionEnd = start + text.length;
-        editor.dispatchEvent(new Event('input'));
-        editor.focus();
-        flashButton('pasteBtn', '✅ Pasted');
-      }catch(e){
-        flashButton('pasteBtn', '⚠️ Allow clipboard access');
-      }
+    document.getElementById('saveBtn').addEventListener('click', () => {
+      clearTimeout(saveTimer);
+      saveNow();
     });
 
     document.getElementById('pdfBtn').addEventListener('click', () => {
+      clearTimeout(saveTimer);
+      saveNow();
       const printArea = document.getElementById('printArea');
       printArea.textContent = editor.value;
       const safeTitle = titleFor(note).replace(/[\\/:*?"<>|]/g, '').trim() || 'Note';
@@ -371,13 +357,6 @@
     });
   }
 
-  function flashButton(id, tempText){
-    const btn = document.getElementById(id);
-    if(!btn) return;
-    const original = btn.textContent;
-    btn.textContent = tempText;
-    setTimeout(() => { if(btn) btn.textContent = original; }, 1200);
-  }
   function flashSaved(){
     const flag = document.getElementById('saveFlag');
     if(!flag) return;
@@ -394,7 +373,7 @@
     renderEditor();
   }
   function deleteNote(id){
-    if(!confirm('Delete this note? This can\'t be undone.')) return;
+    if(!confirm('Delete This Note? This Can\'t Be Undone.')) return;
     notes = notes.filter(n => n.id !== id);
     persistNotes();
     if(activeId === id) activeId = null;

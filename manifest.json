@@ -1,7 +1,7 @@
 {
   "name": "Free Notepad",
   "short_name": "Notepad",
-  "description": "Write, copy, paste in one click. 100% free, no accounts.",
+  "description": "Write And Save In One Click. 100% Free, No Accounts.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
