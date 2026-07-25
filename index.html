@@ -175,6 +175,21 @@
   }
 
   footer{ text-align:center; color:var(--ink-soft); font-size:.8rem; padding:20px; }
+
+  #printArea{ display:none; }
+  @media print{
+    body > *:not(#printArea){ display:none !important; }
+    #printArea{
+      display:block !important;
+      white-space:pre-wrap;
+      word-wrap:break-word;
+      font-family:Georgia,"Times New Roman",serif;
+      font-size:13pt;
+      line-height:1.6;
+      color:#000;
+      padding:0;
+    }
+  }
 </style>
 </head>
 <body>
@@ -210,6 +225,8 @@
 </main>
 
 <footer>Free Notepad — your notes stay only on this device (no login, no server, no tracking).</footer>
+
+<div id="printArea"></div>
 
 <script>
 (function(){
@@ -297,6 +314,7 @@
       <div class="editor-toolbar">
         <button class="tool-btn primary" id="copyBtn">📋 Copy</button>
         <button class="tool-btn" id="pasteBtn">📥 Paste</button>
+        <button class="tool-btn" id="pdfBtn">📄 Save as PDF</button>
         <span class="save-flag" id="saveFlag">Saved</span>
       </div>
       <textarea id="editor" placeholder="Start typing…" autofocus>${escapeHtml(note.content)}</textarea>
@@ -340,6 +358,16 @@
       }catch(e){
         flashButton('pasteBtn', '⚠️ Allow clipboard access');
       }
+    });
+
+    document.getElementById('pdfBtn').addEventListener('click', () => {
+      const printArea = document.getElementById('printArea');
+      printArea.textContent = editor.value;
+      const safeTitle = titleFor(note).replace(/[\\/:*?"<>|]/g, '').trim() || 'Note';
+      const prevTitle = document.title;
+      document.title = safeTitle;
+      window.addEventListener('afterprint', () => { document.title = prevTitle; }, { once:true });
+      window.print();
     });
   }
 
