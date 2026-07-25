@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en" data-bg="white">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Free Notepad — write, copy, paste, in one click</title>
+<meta name="description" content="A free, ad-free, no-account notepad. One click to write, copy, or paste. Jump back into any note, anytime.">
+<style>
+  :root{
+    --teal:#1E9C97;
+    --teal-dark:#137873;
+    --ink:#20302E;
+    --ink-soft:#5C6F6C;
+    --card:#FFFFFF;
+    --border:#DCE6E4;
+    --danger:#C0564B;
+  }
+  html[data-bg="white"]{ --bg:#FFFFFF; --bg-alt:#F4F7F6; }
+  html[data-bg="cream"]{ --bg:#FBF3E3; --bg-alt:#F5EAD3; }
+  html[data-bg="blue"]{ --bg:#E8F4F8; --bg-alt:#DCECF2; }
+  html[data-bg="green"]{ --bg:#E9F5EA; --bg-alt:#DCEFDE; }
+  html[data-bg="rose"]{ --bg:#FDECEF; --bg-alt:#FADFE4; }
+  html[data-bg="grey"]{ --bg:#EFEFEF; --bg-alt:#E4E4E4; }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    min-height:100vh;
+    transition:background .3s ease;
+  }
+  header.app-header{
+    background:linear-gradient(120deg,var(--teal),var(--teal-dark));
+    color:#fff;
+    padding:14px 20px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .brand{ display:flex; flex-direction:column; gap:2px; }
+  .brand h1{ margin:0; font-size:1.4rem; }
+  .brand span{ font-size:.78rem; opacity:.9; }
+  .clock-box{ text-align:right; line-height:1.25; }
+  .clock-box .time{ font-size:1.3rem; font-weight:700; font-variant-numeric:tabular-nums; }
+  .clock-box .date{ font-size:.85rem; opacity:.9; }
+
+  .bg-picker{ display:flex; gap:6px; align-items:center; }
+  .swatch{
+    width:22px; height:22px; border-radius:50%;
+    border:2px solid rgba(255,255,255,.7);
+    cursor:pointer;
+    padding:0;
+  }
+  .swatch[data-c="white"]{ background:#FFFFFF; }
+  .swatch[data-c="cream"]{ background:#FBF3E3; }
+  .swatch[data-c="blue"]{ background:#E8F4F8; }
+  .swatch[data-c="green"]{ background:#E9F5EA; }
+  .swatch[data-c="rose"]{ background:#FDECEF; }
+  .swatch[data-c="grey"]{ background:#EFEFEF; }
+  .swatch.active{ border-color:#fff; box-shadow:0 0 0 2px var(--teal-dark); }
+
+  main{
+    max-width:1100px;
+    margin:0 auto;
+    padding:18px 16px 60px;
+    display:grid;
+    grid-template-columns:280px 1fr;
+    gap:18px;
+  }
+  @media (max-width:760px){
+    main{ grid-template-columns:1fr; }
+  }
+
+  .panel{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:14px;
+  }
+
+  .new-note-btn{
+    width:100%;
+    padding:14px;
+    font-size:1.05rem;
+    font-weight:700;
+    border:none;
+    border-radius:12px;
+    background:var(--teal);
+    color:#fff;
+    cursor:pointer;
+    margin-bottom:12px;
+  }
+  .new-note-btn:hover{ background:var(--teal-dark); }
+
+  .notes-list{ display:flex; flex-direction:column; gap:8px; max-height:65vh; overflow-y:auto; }
+  .note-item{
+    display:flex;
+    align-items:flex-start;
+    gap:6px;
+    background:var(--bg-alt);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px;
+    cursor:pointer;
+  }
+  .note-item.active{ border-color:var(--teal); box-shadow:0 0 0 2px rgba(30,156,151,.25); }
+  .note-item .meta{ flex:1; min-width:0; }
+  .note-item .title{
+    font-weight:600;
+    font-size:.92rem;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .note-item .stamp{ font-size:.72rem; color:var(--ink-soft); margin-top:2px; }
+  .note-item .del-btn{
+    background:none; border:none; cursor:pointer; font-size:1rem;
+    color:var(--ink-soft); padding:2px 4px; border-radius:6px; line-height:1;
+  }
+  .note-item .del-btn:hover{ color:var(--danger); background:rgba(192,86,75,.1); }
+  .empty-hint{ color:var(--ink-soft); font-size:.9rem; padding:8px 4px; }
+
+  .editor-toolbar{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; align-items:center; }
+  .tool-btn{
+    padding:9px 14px;
+    border-radius:10px;
+    border:1px solid var(--border);
+    background:var(--bg-alt);
+    color:var(--ink);
+    font-weight:600;
+    font-size:.88rem;
+    cursor:pointer;
+  }
+  .tool-btn:hover{ background:var(--border); }
+  .tool-btn.primary{ background:var(--teal); color:#fff; border-color:var(--teal); }
+  .tool-btn.primary:hover{ background:var(--teal-dark); }
+  .save-flag{ font-size:.8rem; color:var(--teal-dark); opacity:0; transition:opacity .4s ease; margin-left:auto; }
+  .save-flag.show{ opacity:1; }
+
+  textarea#editor{
+    width:100%;
+    min-height:52vh;
+    resize:vertical;
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:14px;
+    font-size:1rem;
+    line-height:1.5;
+    font-family:inherit;
+    color:var(--ink);
+    background:var(--bg-alt);
+  }
+  textarea#editor:focus{ outline:2px solid var(--teal); outline-offset:1px; }
+
+  .editor-empty{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:52vh;
+    color:var(--ink-soft);
+    text-align:center;
+    padding:20px;
+  }
+
+  footer{ text-align:center; color:var(--ink-soft); font-size:.8rem; padding:20px; }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="brand">
+    <h1>📝 Free Notepad</h1>
+    <span>100% free, forever — no accounts, no paywall.</span>
+  </div>
+  <div class="bg-picker" id="bgPicker" aria-label="Background colour">
+    <button class="swatch" data-c="white" title="White"></button>
+    <button class="swatch" data-c="cream" title="Cream"></button>
+    <button class="swatch" data-c="blue" title="Blue"></button>
+    <button class="swatch" data-c="green" title="Green"></button>
+    <button class="swatch" data-c="rose" title="Rose"></button>
+    <button class="swatch" data-c="grey" title="Grey"></button>
+  </div>
+  <div class="clock-box">
+    <div class="time" id="clockTime">--:--:-- --</div>
+    <div class="date" id="clockDate">--/--/----</div>
+  </div>
+</header>
+
+<main>
+  <section class="panel">
+    <button class="new-note-btn" id="newNoteBtn">＋ New note</button>
+    <div class="notes-list" id="notesList"></div>
+  </section>
+
+  <section class="panel" id="editorPanel">
+    <div class="editor-empty" id="editorEmpty">Click "＋ New note" to start writing — or pick a note on the left to open and edit it.</div>
+  </section>
+</main>
+
+<footer>Free Notepad — your notes stay only on this device (no login, no server, no tracking).</footer>
+
+<script>
+(function(){
+  const STORE_KEY = 'freeNotepadNotes';
+  const BG_KEY = 'freeNotepadBg';
+
+  const notesList = document.getElementById('notesList');
+  const editorPanel = document.getElementById('editorPanel');
+  const newNoteBtn = document.getElementById('newNoteBtn');
+  const bgPicker = document.getElementById('bgPicker');
+
+  let notes = loadNotes();
+  let activeId = null;
+  let saveTimer = null;
+
+  function loadNotes(){
+    try{
+      const raw = localStorage.getItem(STORE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }catch(e){ return []; }
+  }
+  function persistNotes(){
+    localStorage.setItem(STORE_KEY, JSON.stringify(notes));
+  }
+  function titleFor(note){
+    const firstLine = (note.content || '').split('\n').find(l => l.trim().length > 0);
+    if(!firstLine) return 'Untitled note';
+    return firstLine.trim().slice(0, 40);
+  }
+  function stampFor(note){
+    const d = new Date(note.updated);
+    return d.toLocaleDateString('en-GB') + ' ' + d.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+  }
+
+  function renderList(){
+    notesList.innerHTML = '';
+    if(notes.length === 0){
+      const p = document.createElement('div');
+      p.className = 'empty-hint';
+      p.textContent = 'No notes yet.';
+      notesList.appendChild(p);
+      return;
+    }
+    const sorted = [...notes].sort((a,b) => b.updated - a.updated);
+    sorted.forEach(note => {
+      const item = document.createElement('div');
+      item.className = 'note-item' + (note.id === activeId ? ' active' : '');
+      item.addEventListener('click', (e) => {
+        if(e.target.closest('.del-btn')) return;
+        openNote(note.id);
+      });
+
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      const title = document.createElement('div');
+      title.className = 'title';
+      title.textContent = titleFor(note);
+      const stamp = document.createElement('div');
+      stamp.className = 'stamp';
+      stamp.textContent = stampFor(note);
+      meta.appendChild(title);
+      meta.appendChild(stamp);
+
+      const del = document.createElement('button');
+      del.className = 'del-btn';
+      del.title = 'Delete note';
+      del.textContent = '🗑';
+      del.addEventListener('click', () => deleteNote(note.id));
+
+      item.appendChild(meta);
+      item.appendChild(del);
+      notesList.appendChild(item);
+    });
+  }
+
+  function renderEditor(){
+    if(activeId === null){
+      editorPanel.innerHTML = '<div class="editor-empty">Click "＋ New note" to start writing — or pick a note on the left to open and edit it.</div>';
+      return;
+    }
+    const note = notes.find(n => n.id === activeId);
+    if(!note){ activeId = null; renderEditor(); return; }
+
+    editorPanel.innerHTML = `
+      <div class="editor-toolbar">
+        <button class="tool-btn primary" id="copyBtn">📋 Copy</button>
+        <button class="tool-btn" id="pasteBtn">📥 Paste</button>
+        <span class="save-flag" id="saveFlag">Saved</span>
+      </div>
+      <textarea id="editor" placeholder="Start typing…" autofocus>${escapeHtml(note.content)}</textarea>
+    `;
+    const editor = document.getElementById('editor');
+    editor.focus();
+    editor.setSelectionRange(editor.value.length, editor.value.length);
+
+    editor.addEventListener('input', () => {
+      note.content = editor.value;
+      note.updated = Date.now();
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        persistNotes();
+        renderList();
+        flashSaved();
+      }, 250);
+    });
+
+    document.getElementById('copyBtn').addEventListener('click', async () => {
+      try{
+        await navigator.clipboard.writeText(editor.value);
+        flashButton('copyBtn', '✅ Copied');
+      }catch(e){
+        editor.select();
+        document.execCommand('copy');
+        flashButton('copyBtn', '✅ Copied');
+      }
+    });
+
+    document.getElementById('pasteBtn').addEventListener('click', async () => {
+      try{
+        const text = await navigator.clipboard.readText();
+        const start = editor.selectionStart;
+        const end = editor.selectionEnd;
+        editor.value = editor.value.slice(0, start) + text + editor.value.slice(end);
+        editor.selectionStart = editor.selectionEnd = start + text.length;
+        editor.dispatchEvent(new Event('input'));
+        editor.focus();
+        flashButton('pasteBtn', '✅ Pasted');
+      }catch(e){
+        flashButton('pasteBtn', '⚠️ Allow clipboard access');
+      }
+    });
+  }
+
+  function flashButton(id, tempText){
+    const btn = document.getElementById(id);
+    if(!btn) return;
+    const original = btn.textContent;
+    btn.textContent = tempText;
+    setTimeout(() => { if(btn) btn.textContent = original; }, 1200);
+  }
+  function flashSaved(){
+    const flag = document.getElementById('saveFlag');
+    if(!flag) return;
+    flag.classList.add('show');
+    setTimeout(() => flag.classList.remove('show'), 900);
+  }
+  function escapeHtml(s){
+    return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function openNote(id){
+    activeId = id;
+    renderList();
+    renderEditor();
+  }
+  function deleteNote(id){
+    if(!confirm('Delete this note? This can\'t be undone.')) return;
+    notes = notes.filter(n => n.id !== id);
+    persistNotes();
+    if(activeId === id) activeId = null;
+    renderList();
+    renderEditor();
+  }
+  function createNote(){
+    const note = { id: 'n' + Date.now() + Math.random().toString(36).slice(2,7), content: '', updated: Date.now() };
+    notes.push(note);
+    persistNotes();
+    activeId = note.id;
+    renderList();
+    renderEditor();
+  }
+
+  newNoteBtn.addEventListener('click', createNote);
+
+  // Background colour picker
+  function applyBg(c){
+    document.documentElement.setAttribute('data-bg', c);
+    localStorage.setItem(BG_KEY, c);
+    [...bgPicker.querySelectorAll('.swatch')].forEach(s => s.classList.toggle('active', s.dataset.c === c));
+  }
+  bgPicker.addEventListener('click', (e) => {
+    const sw = e.target.closest('.swatch');
+    if(!sw) return;
+    applyBg(sw.dataset.c);
+  });
+  applyBg(localStorage.getItem(BG_KEY) || 'white');
+
+  // Clock: 12hr digital + d/m/y date
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function tick(){
+    const now = new Date();
+    let h = now.getHours();
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12; if(h === 0) h = 12;
+    document.getElementById('clockTime').textContent =
+      `${pad(h)}:${pad(now.getMinutes())}:${pad(now.getSeconds())} ${ampm}`;
+    document.getElementById('clockDate').textContent =
+      `${pad(now.getDate())}/${pad(now.getMonth()+1)}/${now.getFullYear()}`;
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  renderList();
+  renderEditor();
+})();
+</script>
+
+</body>
+</html>
