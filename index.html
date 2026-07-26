@@ -30,6 +30,15 @@
   html[data-bg="rose"]{ --bg:#FDECEF; --bg-alt:#FADFE4; }
   html[data-bg="grey"]{ --bg:#EFEFEF; --bg-alt:#E4E4E4; }
 
+  html[data-theme="dark"]{
+    --ink:#EAF3F1;
+    --ink-soft:#93A9A6;
+    --card:#182322;
+    --border:#2A3B39;
+    --bg:#141C1B;
+    --bg-alt:#1D2827;
+  }
+
   *{ box-sizing:border-box; }
   body{
     margin:0;
@@ -37,7 +46,7 @@
     background:var(--bg);
     color:var(--ink);
     min-height:100vh;
-    transition:background .3s ease;
+    transition:background .3s ease, color .3s ease;
   }
   header.app-header{
     background:linear-gradient(120deg,var(--teal),var(--teal-dark));
@@ -70,6 +79,23 @@
   .swatch[data-c="rose"]{ background:#FDECEF; }
   .swatch[data-c="grey"]{ background:#EFEFEF; }
   .swatch.active{ border-color:#fff; box-shadow:0 0 0 2px var(--teal-dark); }
+
+  .theme-toggle{
+    width:34px; height:34px;
+    border-radius:50%;
+    border:2px solid rgba(255,255,255,.7);
+    background:rgba(255,255,255,.15);
+    cursor:pointer;
+    font-size:1rem;
+    display:flex; align-items:center; justify-content:center;
+    padding:0;
+    margin-left:4px;
+  }
+  .theme-toggle:hover{ background:rgba(255,255,255,.28); }
+
+  #floatBtn{ background:rgba(255,255,255,.15); color:#fff; border-color:rgba(255,255,255,.7); }
+  #floatBtn:hover{ background:rgba(255,255,255,.28); }
+  .float-note{ text-align:center; font-size:.78rem; color:var(--ink-soft); padding:6px 16px 0; }
 
   main{
     max-width:1100px;
@@ -135,6 +161,15 @@
     color:var(--ink-soft); padding:3px 5px; border-radius:6px; line-height:1;
   }
   .note-tile .del-btn:hover{ color:var(--danger); background:rgba(192,86,75,.18); }
+  html[data-theme="dark"] .note-tile .del-btn{ background:rgba(0,0,0,.35); color:#C7D6D3; }
+
+  @media (max-width:600px){
+    .notes-grid{ grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); gap:8px; }
+    .note-tile{ height:100px; padding:7px; border-radius:9px; }
+    .note-tile .tile-text{ font-size:.7rem; line-height:1.25; -webkit-line-clamp:4; }
+    .note-tile .tile-stamp{ font-size:.6rem; margin-top:3px; }
+    .note-tile .del-btn{ font-size:.75rem; padding:2px 4px; top:4px; right:4px; }
+  }
   .empty-hint{ color:var(--ink-soft); font-size:.9rem; padding:8px 4px; }
 
   .editor-toolbar{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; align-items:center; }
@@ -206,14 +241,17 @@
     <button class="swatch" data-c="green" title="Green"></button>
     <button class="swatch" data-c="rose" title="Rose"></button>
     <button class="swatch" data-c="grey" title="Grey"></button>
+    <button class="theme-toggle" id="themeToggle" title="Toggle Dark Mode">🌙</button>
   </div>
   <div class="clock-box">
     <div class="time" id="clockTime">--:--:-- --</div>
     <div class="date" id="clockDate">--/--/----</div>
   </div>
+  <button class="tool-btn" id="floatBtn" title="Keep Free Notepad Floating On Top Of Every Window">📌 Float On Desktop</button>
 </header>
+<div class="float-note" id="floatNote"></div>
 
-<main>
+<main id="mainApp">
   <section class="panel" id="composerPanel">
     <button class="new-note-btn" id="newNoteBtn">＋ New Note</button>
     <div id="editorArea">
@@ -235,11 +273,13 @@
 (function(){
   const STORE_KEY = 'freeNotepadNotes';
   const BG_KEY = 'freeNotepadBg';
+  const THEME_KEY = 'freeNotepadTheme';
 
   const notesList = document.getElementById('notesList');
   const editorArea = document.getElementById('editorArea');
   const newNoteBtn = document.getElementById('newNoteBtn');
   const bgPicker = document.getElementById('bgPicker');
+  const themeToggle = document.getElementById('themeToggle');
 
   let notes = loadNotes();
   let activeId = null;
@@ -316,6 +356,7 @@
       <div class="editor-toolbar">
         <button class="tool-btn primary" id="saveBtn">💾 Save</button>
         <button class="tool-btn" id="pdfBtn">📄 Save As PDF</button>
+        <button class="tool-btn" id="closeBtn">✕ Close</button>
         <span class="save-flag" id="saveFlag">Saved</span>
       </div>
       <textarea id="editor" placeholder="Start Typing…" autofocus>${escapeHtml(note.content)}</textarea>
@@ -354,6 +395,14 @@
       document.title = safeTitle;
       window.addEventListener('afterprint', () => { document.title = prevTitle; }, { once:true });
       window.print();
+    });
+
+    document.getElementById('closeBtn').addEventListener('click', () => {
+      clearTimeout(saveTimer);
+      saveNow();
+      activeId = null;
+      renderList();
+      renderEditor();
     });
   }
 
@@ -404,6 +453,19 @@
   });
   applyBg(localStorage.getItem(BG_KEY) || 'white');
 
+  // Dark mode toggle
+  function applyTheme(t){
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem(THEME_KEY, t);
+    themeToggle.textContent = t === 'dark' ? '☀️' : '🌙';
+    themeToggle.title = t === 'dark' ? 'Switch To Light Mode' : 'Switch To Dark Mode';
+  }
+  themeToggle.addEventListener('click', () => {
+    const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    applyTheme(current === 'dark' ? 'light' : 'dark');
+  });
+  applyTheme(localStorage.getItem(THEME_KEY) || 'light');
+
   // Clock: 12hr digital + d/m/y date
   function pad(n){ return String(n).padStart(2,'0'); }
   function tick(){
@@ -421,6 +483,61 @@
 
   renderList();
   renderEditor();
+
+  // Floating always-on-top window (Document Picture-in-Picture)
+  const floatBtn = document.getElementById('floatBtn');
+  const floatNote = document.getElementById('floatNote');
+  const mainApp = document.getElementById('mainApp');
+  let pipWindow = null;
+  let placeholder = null;
+
+  if(!('documentPictureInPicture' in window)){
+    floatBtn.style.display = 'none';
+    floatNote.textContent = 'Floating On Top Of Every Window Needs Chrome Or Edge On A Computer.';
+  }
+
+  floatBtn.addEventListener('click', async () => {
+    if(pipWindow) return;
+    try{
+      pipWindow = await documentPictureInPicture.requestWindow({ width: 300, height: 700 });
+    }catch(e){
+      floatNote.textContent = "Couldn't Open The Floating Window: " + e.message;
+      return;
+    }
+
+    [...document.styleSheets].forEach(sheet => {
+      try{
+        const cssRules = [...sheet.cssRules].map(r => r.cssText).join('\n');
+        const style = document.createElement('style');
+        style.textContent = cssRules;
+        pipWindow.document.head.appendChild(style);
+      }catch(e){
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = sheet.href;
+        pipWindow.document.head.appendChild(link);
+      }
+    });
+    pipWindow.document.documentElement.setAttribute('data-bg', document.documentElement.getAttribute('data-bg'));
+    pipWindow.document.documentElement.setAttribute('data-theme', document.documentElement.getAttribute('data-theme'));
+    pipWindow.document.title = 'Free Notepad';
+
+    placeholder = document.createElement('div');
+    placeholder.className = 'panel';
+    placeholder.style.textAlign = 'center';
+    placeholder.style.color = 'var(--ink-soft)';
+    placeholder.textContent = 'Floating On Your Desktop Right Now — Close That Window To Bring It Back Here.';
+    mainApp.replaceWith(placeholder);
+    pipWindow.document.body.style.margin = '0';
+    pipWindow.document.body.appendChild(mainApp);
+    floatBtn.textContent = '📌 Floating…';
+
+    pipWindow.addEventListener('pagehide', () => {
+      placeholder.replaceWith(mainApp);
+      pipWindow = null;
+      floatBtn.textContent = '📌 Float On Desktop';
+    }, { once:true });
+  });
 })();
 </script>
 
